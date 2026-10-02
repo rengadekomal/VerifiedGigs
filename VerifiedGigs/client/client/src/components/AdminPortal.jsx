@@ -166,20 +166,50 @@ export function AdminDashboardLive() {
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        request("/admin/dashboard/stats", token)
-            .then((body) => {
-                setStats(
-                    body.stats || {
-                        totalStudents: 0,
-                        totalClients: 0,
-                        openGigs: 0,
-                        activeProjects: 0,
-                        pendingVerifications: 0,
-                        openReports: 0
-                    }
-                );
-            })
-            .catch(setError);
+        if (!token) return;
+
+        let cancelled = false;
+
+        const load = async () => {
+            try {
+                const body = await request("/admin/dashboard/stats", token);
+
+                if (!cancelled) {
+                    setStats(
+                        body.stats || {
+                            totalStudents: 0,
+                            totalClients: 0,
+                            openGigs: 0,
+                            activeProjects: 0,
+                            pendingVerifications: 0,
+                            openReports: 0
+                        }
+                    );
+                    setError(null);
+                }
+            } catch (err) {
+                if (!cancelled) setError(err);
+            }
+        };
+
+        load();
+
+        // Refresh counts automatically so admin sees changes made by clients/students.
+        const refreshInterval = window.setInterval(() => {
+            if (!document.hidden) load();
+        }, 10000);
+
+        const handleVisibilityChange = () => {
+            if (!document.hidden) load();
+        };
+
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+
+        return () => {
+            cancelled = true;
+            window.clearInterval(refreshInterval);
+            document.removeEventListener("visibilitychange", handleVisibilityChange);
+        };
     }, [token]);
 
     return (
@@ -668,7 +698,25 @@ export function AdminGigs() {
     };
 
     useEffect(() => {
+        if (!token) return;
+
         load();
+
+        // Keep the admin gig list synchronized with client-side changes.
+        const refreshInterval = window.setInterval(() => {
+            if (!document.hidden) load();
+        }, 10000);
+
+        const handleVisibilityChange = () => {
+            if (!document.hidden) load();
+        };
+
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+
+        return () => {
+            window.clearInterval(refreshInterval);
+            document.removeEventListener("visibilitychange", handleVisibilityChange);
+        };
     }, [token]);
 
     const remove = async (gigId) => {

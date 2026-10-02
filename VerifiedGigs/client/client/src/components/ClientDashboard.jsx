@@ -13,17 +13,64 @@ export default function ClientDashboard() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    Promise.all([
-      fetch(`${import.meta.env.VITE_API_URL}/client/dashboard/stats`, { headers: { Authorization: `Bearer ${token}` } }),
-      fetch(`${import.meta.env.VITE_API_URL}/client/gigs`, { headers: { Authorization: `Bearer ${token}` } }),
-      fetch(`${import.meta.env.VITE_API_URL}/client/applications`, { headers: { Authorization: `Bearer ${token}` } }),
-    ]).then(async ([statsResponse, gigsResponse, applicationsResponse]) => {
-      const bodies = await Promise.all([statsResponse.json(), gigsResponse.json(), applicationsResponse.json()]);
-      if (!statsResponse.ok || !gigsResponse.ok || !applicationsResponse.ok) throw new Error(bodies.find((body) => body.message)?.message || "Failed to load client dashboard");
-      setStats(bodies[0].stats);
-      setGigs(bodies[1].gigs || []);
-      setApplications(bodies[2].applications || []);
-    }).catch(setError).finally(() => setLoading(false));
+    if (!token) return;
+
+    let cancelled = false;
+
+    const loadDashboard = async (showLoader = false) => {
+      if (showLoader) setLoading(true);
+      setError(null);
+
+      try {
+        const [statsResponse, gigsResponse, applicationsResponse] = await Promise.all([
+          fetch(`${import.meta.env.VITE_API_URL}/client/dashboard/stats`, { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(`${import.meta.env.VITE_API_URL}/client/gigs`, { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(`${import.meta.env.VITE_API_URL}/client/applications`, { headers: { Authorization: `Bearer ${token}` } }),
+        ]);
+
+        const bodies = await Promise.all([
+          statsResponse.json(),
+          gigsResponse.json(),
+          applicationsResponse.json()
+        ]);
+
+        if (!statsResponse.ok || !gigsResponse.ok || !applicationsResponse.ok) {
+          throw new Error(
+            bodies.find((body) => body.message)?.message ||
+              "Failed to load client dashboard"
+          );
+        }
+
+        if (cancelled) return;
+
+        setStats(bodies[0].stats);
+        setGigs(bodies[1].gigs || []);
+        setApplications(bodies[2].applications || []);
+      } catch (err) {
+        if (!cancelled) setError(err);
+      } finally {
+        if (!cancelled && showLoader) setLoading(false);
+      }
+    };
+
+    loadDashboard(true);
+
+    // Keep dashboard data synchronized with changes made elsewhere in the app.
+    const refreshInterval = window.setInterval(() => {
+      if (!document.hidden) loadDashboard(false);
+    }, 10000);
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) loadDashboard(false);
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(refreshInterval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [token]);
 
   const handleLogout = () => {
