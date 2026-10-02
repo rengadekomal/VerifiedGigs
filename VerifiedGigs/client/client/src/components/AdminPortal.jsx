@@ -98,7 +98,6 @@ function Shell({ title, children }) {
     return (
         <div className="admin-portal">
             <header className="admin-header">
-
                 <Link className="admin-logo" to="/admin/dashboard">
                     <span className="logo-mark">V</span>
 
@@ -111,7 +110,9 @@ function Shell({ title, children }) {
                     {links.map(([to, label]) => (
                         <Link
                             key={to}
-                            className={location.pathname === to ? "active" : ""}
+                            className={
+                                location.pathname === to ? "active" : ""
+                            }
                             to={to}
                         >
                             {label}
@@ -133,7 +134,6 @@ function Shell({ title, children }) {
                         Log out
                     </button>
                 </div>
-
             </header>
 
             <main className="admin-main">
@@ -154,7 +154,6 @@ function Shell({ title, children }) {
     );
 }
 
-
 /* =========================================================
    ADMIN DASHBOARD
 ========================================================= */
@@ -166,33 +165,62 @@ export function AdminDashboardLive() {
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        request("/admin/dashboard/stats", token)
-            .then((body) => {
-                setStats(
-                    body.stats || {
-                        totalStudents: 0,
-                        totalClients: 0,
-                        openGigs: 0,
-                        activeProjects: 0,
-                        pendingVerifications: 0,
-                        openReports: 0
-                    }
+        if (!token) return;
+
+        let cancelled = false;
+
+        const load = async () => {
+            try {
+                const body = await request(
+                    "/admin/dashboard/stats",
+                    token
                 );
-            })
-            .catch(setError);
+
+                if (!cancelled) {
+                    setStats(
+                        body.stats || {
+                            totalStudents: 0,
+                            totalClients: 0,
+                            openGigs: 0,
+                            activeProjects: 0,
+                            pendingVerifications: 0,
+                            openReports: 0
+                        }
+                    );
+
+                    setError(null);
+                }
+            } catch (err) {
+                if (!cancelled) {
+                    setError(err);
+                }
+            }
+        };
+
+        load();
+
+        // Automatically refresh dashboard every 5 seconds
+        const interval = setInterval(load, 5000);
+
+        return () => {
+            cancelled = true;
+            clearInterval(interval);
+        };
     }, [token]);
 
     return (
         <Shell title="Admin dashboard">
             <State loading={!stats && !error} error={error}>
                 <div className="admin-stats">
-
                     {[
                         ["totalStudents", "Total students"],
                         ["totalClients", "Total clients"],
                         ["openGigs", "Open gigs"],
                         ["activeProjects", "Active projects"],
-                        ["pendingVerifications", "Pending verifications"],
+                        [
+                            "pendingVerifications",
+                            "Pending verifications"
+                        ],
                         ["openReports", "Open reports"]
                     ].map(([key, label]) => (
                         <div key={key}>
@@ -201,11 +229,9 @@ export function AdminDashboardLive() {
                             <small>Live database count</small>
                         </div>
                     ))}
-
                 </div>
 
                 <div className="admin-grid">
-
                     <Link
                         className="admin-card shortcut"
                         to="/admin/users"
@@ -235,13 +261,11 @@ export function AdminDashboardLive() {
                             View platform payment records.
                         </p>
                     </Link>
-
                 </div>
             </State>
         </Shell>
     );
 }
-
 
 /* =========================================================
    ADMIN USERS
@@ -302,9 +326,7 @@ export function AdminUsersLive() {
 
     return (
         <Shell title="Users">
-
             <div className="admin-toolbar">
-
                 <input
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
@@ -319,7 +341,6 @@ export function AdminUsersLive() {
                     <option>STUDENT</option>
                     <option>CLIENT</option>
                 </select>
-
             </div>
 
             <State
@@ -331,17 +352,13 @@ export function AdminUsersLive() {
                         : null
                 }
             >
-
                 <div className="stack">
-
                     {visible.map((user) => (
                         <article
                             className="admin-card report-row"
                             key={user.user_id}
                         >
-
                             <div>
-
                                 <div className="admin-kicker">
                                     {user.role}
                                     <span>{user.account_status}</span>
@@ -359,11 +376,9 @@ export function AdminUsersLive() {
                                         user.college_name ||
                                         "No profile detail"}
                                 </small>
-
                             </div>
 
                             <div className="admin-actions">
-
                                 <select
                                     value={user.account_status}
                                     disabled={user.role === "ADMIN"}
@@ -378,20 +393,14 @@ export function AdminUsersLive() {
                                     <option>INACTIVE</option>
                                     <option>SUSPENDED</option>
                                 </select>
-
                             </div>
-
                         </article>
                     ))}
-
                 </div>
-
             </State>
-
         </Shell>
     );
 }
-
 
 /* =========================================================
    ADMIN PROJECTS
@@ -411,21 +420,17 @@ export function AdminProjectsLive() {
 
     return (
         <Shell title="Project monitoring">
-
             <State
                 loading={!items.length && !error}
                 error={error}
                 empty={!items.length ? "No projects found." : null}
             >
-
                 <div className="admin-grid">
-
                     {items.map((item) => (
                         <article
                             className="admin-card"
                             key={item.project_id}
                         >
-
                             <div className="admin-kicker">
                                 {item.project_status}
                                 <span>{item.project_id}</span>
@@ -448,18 +453,13 @@ export function AdminProjectsLive() {
                                     {money(item.agreed_amount)}
                                 </strong>
                             </div>
-
                         </article>
                     ))}
-
                 </div>
-
             </State>
-
         </Shell>
     );
 }
-
 
 /* =========================================================
    ADMIN PAYMENTS
@@ -479,23 +479,18 @@ export function AdminPaymentsLive() {
 
     return (
         <Shell title="Payment monitoring">
-
             <State
                 loading={!items.length && !error}
                 error={error}
                 empty={!items.length ? "No payments found." : null}
             >
-
                 <div className="stack">
-
                     {items.map((item) => (
                         <article
                             className="admin-card report-row"
                             key={item.payment_id}
                         >
-
                             <div>
-
                                 <div className="admin-kicker">
                                     {item.payment_status}
                                     <span>
@@ -510,25 +505,19 @@ export function AdminPaymentsLive() {
                                     {item.client_name} · Student{" "}
                                     {item.student_name}
                                 </p>
-
                             </div>
 
                             <small>
                                 {item.payment_method ||
                                     "No payment method"}
                             </small>
-
                         </article>
                     ))}
-
                 </div>
-
             </State>
-
         </Shell>
     );
 }
-
 
 /* =========================================================
    ADMIN PROFILE
@@ -572,20 +561,14 @@ export function AdminProfileLive() {
 
     return (
         <Shell title="Admin profile">
-
-            <State
-                loading={loading}
-                error={error}
-            >
-
+            <State loading={loading} error={error}>
                 <div className="admin-card form-card">
-
                     {notice && <Notice>{notice}</Notice>}
 
                     <form onSubmit={save}>
-
                         <label>
                             Name
+
                             <input
                                 required
                                 value={form.name || ""}
@@ -600,6 +583,7 @@ export function AdminProfileLive() {
 
                         <label>
                             Email
+
                             <input
                                 disabled
                                 value={form.email || ""}
@@ -608,6 +592,7 @@ export function AdminProfileLive() {
 
                         <label>
                             Phone
+
                             <input
                                 value={form.phone || ""}
                                 onChange={(event) =>
@@ -622,17 +607,12 @@ export function AdminProfileLive() {
                         <button className="admin-button">
                             Save profile
                         </button>
-
                     </form>
-
                 </div>
-
             </State>
-
         </Shell>
     );
 }
-
 
 /* =========================================================
    ADMIN GIGS
@@ -656,6 +636,8 @@ export function AdminGigs() {
     const [notice, setNotice] = useState("");
 
     const load = () => {
+        if (!token) return;
+
         setLoading(true);
         setError(null);
 
@@ -668,7 +650,19 @@ export function AdminGigs() {
     };
 
     useEffect(() => {
+        if (!token) return;
+
+        // Initial load
         load();
+
+        // Automatically refresh gigs every 5 seconds
+        const interval = setInterval(() => {
+            load();
+        }, 5000);
+
+        return () => {
+            clearInterval(interval);
+        };
     }, [token]);
 
     const remove = async (gigId) => {
@@ -676,7 +670,6 @@ export function AdminGigs() {
             return;
         }
 
-        // Clear old messages before attempting deletion
         setActionError("");
         setNotice("");
 
@@ -689,26 +682,12 @@ export function AdminGigs() {
                 }
             );
 
-            // Successful deletion
             setNotice("Gig deleted successfully.");
 
-            // Reload the gig list
             load();
-
         } catch (err) {
-
             console.error("Delete gig error:", err);
 
-            /*
-             * IMPORTANT:
-             * Do NOT call setError(err) here.
-             *
-             * setError is used by State for page-loading errors.
-             * If we use it here, the entire page shows
-             * "Could not load this page".
-             *
-             * actionError is only for the delete operation.
-             */
             setActionError(errorText(err));
         }
     };
@@ -723,9 +702,7 @@ export function AdminGigs() {
 
     return (
         <Shell title="Gigs">
-
             <div className="admin-toolbar">
-
                 <input
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
@@ -748,14 +725,9 @@ export function AdminGigs() {
                     {visible.length} gig
                     {visible.length === 1 ? "" : "s"}
                 </span>
-
             </div>
 
-            {notice && (
-                <Notice>
-                    {notice}
-                </Notice>
-            )}
+            {notice && <Notice>{notice}</Notice>}
 
             {actionError && (
                 <Notice error>
@@ -772,15 +744,12 @@ export function AdminGigs() {
                         : null
                 }
             >
-
                 <div className="admin-grid">
-
                     {visible.map((gig) => (
                         <article
                             className="admin-card"
                             key={gig.gig_id}
                         >
-
                             <div className="admin-kicker">
                                 {gig.status}
                                 <span>{gig.category_name}</span>
@@ -791,7 +760,6 @@ export function AdminGigs() {
                             <p>{gig.description}</p>
 
                             <div className="admin-meta">
-
                                 <span>
                                     {gig.company_name}
                                 </span>
@@ -800,7 +768,6 @@ export function AdminGigs() {
                                     {money(gig.budget_min)} -{" "}
                                     {money(gig.budget_max)}
                                 </strong>
-
                             </div>
 
                             <small>
@@ -808,7 +775,6 @@ export function AdminGigs() {
                             </small>
 
                             <div className="admin-actions">
-
                                 <button
                                     className="admin-button danger"
                                     onClick={() =>
@@ -817,20 +783,14 @@ export function AdminGigs() {
                                 >
                                     Delete
                                 </button>
-
                             </div>
-
                         </article>
                     ))}
-
                 </div>
-
             </State>
-
         </Shell>
     );
 }
-
 
 /* =========================================================
    ADMIN VERIFICATIONS
@@ -886,7 +846,6 @@ export function AdminVerifications() {
             setNotice(`Document ${status.toLowerCase()}.`);
 
             load();
-
         } catch (err) {
             setError(err);
         }
@@ -900,9 +859,7 @@ export function AdminVerifications() {
 
     return (
         <Shell title="Verification queue">
-
             <div className="tabs">
-
                 {["PENDING", "VERIFIED", "REJECTED", "ALL"].map(
                     (item) => (
                         <button
@@ -921,7 +878,6 @@ export function AdminVerifications() {
                         </button>
                     )
                 )}
-
             </div>
 
             {notice && <Notice>{notice}</Notice>}
@@ -935,17 +891,13 @@ export function AdminVerifications() {
                         : null
                 }
             >
-
                 <div className="stack">
-
                     {visible.map((item) => (
                         <article
                             className="admin-card document-row"
                             key={item.document_id}
                         >
-
                             <div>
-
                                 <div className="admin-kicker">
                                     {item.verification_status}
                                     <span>
@@ -966,11 +918,9 @@ export function AdminVerifications() {
                                 >
                                     Open document
                                 </a>
-
                             </div>
 
                             <div className="admin-actions">
-
                                 {item.verification_status ===
                                     "PENDING" && (
                                     <>
@@ -999,20 +949,14 @@ export function AdminVerifications() {
                                         </button>
                                     </>
                                 )}
-
                             </div>
-
                         </article>
                     ))}
-
                 </div>
-
             </State>
-
         </Shell>
     );
 }
-
 
 /* =========================================================
    ADMIN REPORTS
@@ -1061,7 +1005,6 @@ export function AdminReports() {
             );
 
             load();
-
         } catch (err) {
             setError(err);
         }
@@ -1077,9 +1020,7 @@ export function AdminReports() {
 
     return (
         <Shell title="Reports">
-
             <div className="tabs">
-
                 {[
                     "ALL",
                     "PENDING",
@@ -1101,7 +1042,6 @@ export function AdminReports() {
                             : item.replace("_", " ")}
                     </button>
                 ))}
-
             </div>
 
             {notice && <Notice>{notice}</Notice>}
@@ -1115,17 +1055,13 @@ export function AdminReports() {
                         : null
                 }
             >
-
                 <div className="stack">
-
                     {visible.map((item) => (
                         <article
                             className="admin-card report-row"
                             key={item.report_id}
                         >
-
                             <div>
-
                                 <div className="admin-kicker">
                                     {item.report_status}
                                     <span>
@@ -1152,11 +1088,9 @@ export function AdminReports() {
                                             "not specified"
                                         }`}
                                 </small>
-
                             </div>
 
                             <div className="admin-actions">
-
                                 <select
                                     value={item.report_status}
                                     onChange={(e) =>
@@ -1173,20 +1107,14 @@ export function AdminReports() {
                                     <option>RESOLVED</option>
                                     <option>REJECTED</option>
                                 </select>
-
                             </div>
-
                         </article>
                     ))}
-
                 </div>
-
             </State>
-
         </Shell>
     );
 }
-
 
 /* =========================================================
    ADMIN CATALOG
@@ -1267,7 +1195,6 @@ export function AdminCatalog() {
             );
 
             load();
-
         } catch (err) {
             setError(err);
         }
@@ -1275,9 +1202,7 @@ export function AdminCatalog() {
 
     return (
         <Shell title="Categories and skills">
-
             <State loading={loading} error={error}>
-
                 {notice && <Notice>{notice}</Notice>}
 
                 {error && (
@@ -1287,13 +1212,10 @@ export function AdminCatalog() {
                 )}
 
                 <div className="catalog-grid">
-
                     <section className="admin-card">
-
                         <h2>Categories</h2>
 
                         <div className="catalog-list">
-
                             {categories.length ? (
                                 categories.map((item) => (
                                     <div
@@ -1316,7 +1238,6 @@ export function AdminCatalog() {
                                     No categories found.
                                 </p>
                             )}
-
                         </div>
 
                         <form
@@ -1327,7 +1248,6 @@ export function AdminCatalog() {
                                 )
                             }
                         >
-
                             <label>
                                 Name
 
@@ -1366,18 +1286,13 @@ export function AdminCatalog() {
                             <button className="admin-button">
                                 Add category
                             </button>
-
                         </form>
-
                     </section>
 
-
                     <section className="admin-card">
-
                         <h2>Skills</h2>
 
                         <div className="catalog-list">
-
                             {skills.length ? (
                                 skills.map((item) => (
                                     <div
@@ -1398,7 +1313,6 @@ export function AdminCatalog() {
                                     No skills found.
                                 </p>
                             )}
-
                         </div>
 
                         <form
@@ -1409,7 +1323,6 @@ export function AdminCatalog() {
                                 )
                             }
                         >
-
                             <label>
                                 Name
 
@@ -1465,20 +1378,15 @@ export function AdminCatalog() {
                             <button className="admin-button">
                                 Add skill
                             </button>
-
                         </form>
-
                     </section>
-
                 </div>
 
                 <Notice>
                     Existing APIs support listing and creation only.
                     Edit and delete APIs are unavailable.
                 </Notice>
-
             </State>
-
         </Shell>
     );
 }
